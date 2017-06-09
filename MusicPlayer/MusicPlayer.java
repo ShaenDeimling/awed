@@ -62,12 +62,12 @@ class MusicPlayer {
 	protected MusicPlayer(File folder, MediaWindow mediaWindow) {
 		mw = mediaWindow;
 		playlist = AudioSource.getPrimarySource(folder);
+		upNext = new LinkedList<MusicFile>();
+		lastPlayed = new LinkedList<MusicFile>();
+		prevMF = getValidSong();
+		currMF = getValidSong();
+		nextMF = getValidSong();
 		if (playlist.isValid()) {
-			upNext = new LinkedList<MusicFile>();
-			lastPlayed = new LinkedList<MusicFile>();
-			prevMF = getValidSong();
-			currMF = getValidSong();
-			nextMF = getValidSong();
 			play();
 		}	
 	}
@@ -76,12 +76,16 @@ class MusicPlayer {
 	 * Gets a media file which can be played.
 	 */
 	private MusicFile getValidSong() {
-		MusicFile nextFile = playlist.getSong();
-		finalize(nextFile);
-		while (!nextFile.isValid()) {
-			nextFile = playlist.getSong();
-			finalize(nextFile);
+		if (!playlist.isValid()) {
+			return null;
 		}
+		MusicFile nextFile = null;
+		do {
+			nextFile = playlist.getSong();
+			if (nextFile != null) {
+				finalize(nextFile);
+			}
+		} while (nextFile == null || !nextFile.isValid());
 		return nextFile;
 	}
 

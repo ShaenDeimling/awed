@@ -1,4 +1,5 @@
 package WeightedPlaylist;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -11,16 +12,46 @@ import java.util.Scanner;
 
 import Logging.Logger;
 
-//represents a folder with songs and has a file in that folder
-
+/**
+ * Represents a folder containing songs and/or other folders.
+ */
 public final class Playlist extends AudioSource {
+	/**
+	 * The file where the user's preferences for songs in this folder are
+	 * stored.
+	 */
 	private File preferences = null;
+
+	/**
+	 * The audio sources found within this folder.
+	 */
 	private ArrayList<AudioSource> audioSources = null;
+
+	/**
+	 * True iff this folder has a valid song within.
+	 */
 	private boolean isValid = false;
+
+	/**
+	 * The total weight of all songs in this playlist.
+	 */
 	private double totalWeight = Double.NaN;
+	
+	/**
+	 * The last song picked.
+	 */
 	private MusicFile onePlayed = null;
+	
+	/**
+	 * The second to last song picked.
+	 */
 	private MusicFile twoPlayed = null;
 
+	/**
+	 * Load all the songs in the given folder and ready for playing.
+	 * 
+	 * @param dir The folder to be opened.
+	 */
 	protected Playlist(File dir) {
 		super(dir);
 		HashMap<String, AudioSource> sourceMap = new HashMap<String, AudioSource>();
@@ -81,12 +112,15 @@ public final class Playlist extends AudioSource {
 			isValid = false;
 			Logger.log(ex.toString());
 		}
-		
+
 		if (getCount() < 3) {
 			isValid = false;
 		}
 	}
 
+	/**
+	 * Update the file representing the user's preferences.
+	 */
 	private void updateFile() {
 		try (FileWriter fw = new FileWriter(preferences, false);
 				BufferedWriter bw = new BufferedWriter(fw);
@@ -98,7 +132,7 @@ public final class Playlist extends AudioSource {
 				public int compare(AudioSource o1, AudioSource o2) {
 					if (o1 instanceof Playlist) {
 						if (o2 instanceof Playlist) {
-							if (((Playlist) o1).getNormWeight() > ((Playlist) o2).getNormWeight()) {
+							if (((Playlist) o1).getRelativeWeight() > ((Playlist) o2).getRelativeWeight()) {
 								return -1;
 							} else {
 								return 1;
@@ -146,10 +180,19 @@ public final class Playlist extends AudioSource {
 
 	}
 
+	/**
+	 * Get a valid song from this playlist.
+	 */
 	public MusicFile getSong() {
 		MusicFile next = getSong(AudioSource.random());
+		int failCount = 0;
 		while (next.equals(onePlayed) || next.equals(twoPlayed)) {
 			next = getSong(AudioSource.random());
+			failCount++;
+			if (failCount >= 10) {
+				isValid = false;
+				return null;
+			}
 		}
 		onePlayed = twoPlayed;
 		twoPlayed = next;
@@ -161,7 +204,7 @@ public final class Playlist extends AudioSource {
 		if (!Double.isNaN(totalWeight)) {
 			updateWeights();
 		}
-		
+
 		int index = 0;
 		for (int i = 0; i < audioSources.size(); i++) {
 			if (residual <= audioSources.get(i).getCumulWeight()) {
@@ -225,7 +268,7 @@ public final class Playlist extends AudioSource {
 	}
 
 	/**
-	 * Used only on the top playlist.
+	 * Used only on the top playlist to update all weights.
 	 */
 	protected void updateWeights() {
 		if (Double.isNaN(totalWeight)) {
@@ -289,10 +332,14 @@ public final class Playlist extends AudioSource {
 
 	@Override
 	protected String getFileString() {
-		return Double.toString(getNormWeight()) + " " + getName();
+		return Double.toString(getRelativeWeight()) + " " + getName();
 	}
 
-	private double getNormWeight() {
+	/**
+	 * Returns the relative likelihood of a song from this playlist being
+	 * played.
+	 */
+	private double getRelativeWeight() {
 		return getWeight() / (double) getCount();
 	}
 

@@ -534,7 +534,6 @@ public class MediaWindow extends Application {
 
 		musicPlayer = new MusicPlayer(folder, this);
 		if (musicPlayer.isValid()) {
-			musicPlayer.play();
 			preferences.put("lastPlayed", folder.getAbsolutePath());
 		} else {
 			musicPlayer = null;
