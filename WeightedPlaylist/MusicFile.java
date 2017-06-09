@@ -5,22 +5,34 @@ import java.io.File;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 
+/**
+ * Represents a file that contains playable audio.
+ */
 public final class MusicFile extends AudioSource {
-
+	
+	/**
+	 * True iff this file can actually be played.
+	 */
 	private boolean isValid = true;
 
+	/**
+	 * The relative likelihood of this file being played. 1.0 is average.
+	 */
 	private double weight = 0.0;
 
+	/**
+	 * The media player used to play this file.
+	 */
 	private MediaPlayer mediaPlayer = null;
+	
+	/**
+	 * The media created using this file.
+	 */
 	private Media media = null;
 
-	protected MusicFile(File source) {
-		super(source);
-		if (Double.isNaN(weight)) {
-			isValid = false;
-		}
-	}
-
+	/**
+	 * Acquire the resources needed to play this song immediately.
+	 */
 	public void acquire() {
 		if (!isValid) {
 			return;
@@ -45,7 +57,10 @@ public final class MusicFile extends AudioSource {
 			invalidate();
 		}
 	}
-
+	
+	/**
+	 * Returns the playable media player.
+	 */
 	public MediaPlayer player() {
 		if (isValid) {
 			return mediaPlayer;
@@ -54,6 +69,9 @@ public final class MusicFile extends AudioSource {
 		}
 	}
 
+	/**
+	 * Disposes of resources allocated to this object.
+	 */
 	public void dispose() {
 		mediaPlayer.stop();
 		mediaPlayer.dispose();
@@ -61,11 +79,36 @@ public final class MusicFile extends AudioSource {
 		media = null;
 	}
 
+	/**
+	 * Multiply the current weight by a value.
+	 */
+	public void modifyWeight(double modifier) {
+		balanceWeight(modifier);
+	}
+	
+	/**
+	 * Used to ensure this file is never played again.
+	 */
 	private void invalidate() {
 		isValid = false;
 		weight = Double.NaN;
 	}
+	
+	/**
+	 * Creates a new MusicFile from the specified file.
+	 * 
+	 * @param source The file to attempt to play.
+	 */
+	protected MusicFile(File source) {
+		super(source);
+		if (Double.isNaN(weight)) {
+			isValid = false;
+		}
+	}
 
+	/**
+	 * True iff this file has not been invalidated.
+	 */
 	@Override
 	public boolean isValid() {
 		return isValid;
@@ -76,13 +119,6 @@ public final class MusicFile extends AudioSource {
 		if (isValid) {
 			setWeight(getWeight() * multiplier);
 		}
-	}
-
-	/**
-	 * Multiply the current weight by a value
-	 */
-	public void modifyWeight(double modifier) {
-		balanceWeight(modifier);
 	}
 
 	@Override
