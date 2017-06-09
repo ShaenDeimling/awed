@@ -51,10 +51,19 @@ import javafx.util.Duration;
  */
 public class MediaWindow extends Application {
 
+	/**
+	 * Used to store user preferences.
+	 */
 	private static final Preferences preferences = Preferences.userNodeForPackage(MediaWindow.class);
 
+	/**
+	 * The music player that will provide abstraction for song selection.
+	 */
 	private MusicPlayer musicPlayer = null;
 
+	/**
+	 * The folder that was previously opened by the user.
+	 */
 	private File lastPickedFolder = null;
 
 	/**
@@ -158,16 +167,10 @@ public class MediaWindow extends Application {
 	 */
 	private int bandCount = 1024;
 
+	/**
+	 * Play the next song.
+	 */
 	private final Runnable playNext = new Runnable() {
-		@Override
-		public void run() {
-			if (musicPlayer != null) {
-				musicPlayer.playNext();
-			}
-		}
-	};
-
-	private final Runnable retrySong = new Runnable() {
 		@Override
 		public void run() {
 			if (musicPlayer != null) {
@@ -243,7 +246,7 @@ public class MediaWindow extends Application {
 		blur.setWidth(4.0);
 		blur.setIterations(2);
 
-		// visual = new Visualizer(this);
+		// used to create the visuals; lots of custom math
 		visual = new AudioSpectrumListener() {
 
 			@Override
@@ -254,7 +257,6 @@ public class MediaWindow extends Application {
 					double scale = 50;
 					double stretch = 0.5;
 					interpolate = stretch * (Math.pow(scale, interpolate) - 1.0) / (scale - 1.0);
-					// interpolate = Math.pow(interpolate, scale)*stretch;
 					interpolate *= (double) (magnitudes.length);
 					int index = (int) interpolate;
 					double ratio = interpolate - (double) (index);
@@ -269,6 +271,7 @@ public class MediaWindow extends Application {
 			}
 		};
 
+		// used to animate the moving orbs; more custom math
 		timer = new AnimationTimer() {
 
 			@Override
@@ -331,6 +334,7 @@ public class MediaWindow extends Application {
 			}
 		};
 
+		// stop the animations when the screen is minimized
 		stage.iconifiedProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
 			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
@@ -344,6 +348,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// pre-calculate the hues
 		for (int i = 0; i < bandCount; i++) {
 			hues[i] = (360.0 * ((double) i)) / ((double) bandCount);
 		}
@@ -351,6 +356,7 @@ public class MediaWindow extends Application {
 
 		mainPane = new StackPane();
 
+		// add a fullscreen button
 		fullScreen.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -363,6 +369,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// add a button to never play this song again
 		neverAgain.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -373,6 +380,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// add a button to go back to the previous song
 		prevButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -383,6 +391,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// add a button to play or pause the song
 		playButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -393,6 +402,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// add a button to skip songs; less likely to play again
 		nextButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -403,6 +413,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// add a button for the user to open a folder
 		openFolder.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -414,6 +425,7 @@ public class MediaWindow extends Application {
 			}
 		});
 
+		// add an area for the user to seek through the song
 		clickSeek.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
@@ -428,17 +440,19 @@ public class MediaWindow extends Application {
 		});
 		clickSeek.setOnMouseDragged(clickSeek.getOnMouseClicked());
 
+		// add a button for the user to favorite a song
 		favorite.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent ev) {
 				favorite.opacity = FadeButton.maxOpacity;
 				if (musicPlayer != null) {
-					musicPlayer.favorite();;
+					musicPlayer.favorite();
+					;
 				}
 			}
 		});
 
-		// Bind canvas size to stack pane size.
+		// align all the elements
 		canvas.widthProperty().bind(mainPane.widthProperty());
 		canvas.heightProperty().bind(mainPane.heightProperty());
 
@@ -475,6 +489,7 @@ public class MediaWindow extends Application {
 		clickSeek.widthProperty().bind(mainPane.widthProperty().multiply(1.0));
 		clickSeek.yProperty().bind(mainPane.heightProperty().subtract(20).multiply(0.9).add(20));
 
+		// construct the player
 		innerPane.add(new Pane());
 		innerPane.getLast().getChildren().add(canvas);
 
@@ -485,18 +500,20 @@ public class MediaWindow extends Application {
 		mainPane.getChildren().addAll(innerPane);
 
 		Scene scene = new Scene(mainPane);
-		
+
+		// hide the mouse after 6 seconds
 		PauseTransition idle = new PauseTransition(Duration.seconds(6));
 		idle.setOnFinished(e -> scene.setCursor(Cursor.NONE));
 		scene.addEventHandler(Event.ANY, e -> {
-		    idle.playFromStart();
-		    scene.setCursor(Cursor.DEFAULT);
+			idle.playFromStart();
+			scene.setCursor(Cursor.DEFAULT);
 		});
-		
+
 		stage.setScene(scene);
 		stage.show();
 		timer.start();
 
+		// open the last played folder
 		String lastPlayed = preferences.get("lastPlayed", "");
 		if (!lastPlayed.equals("")) {
 			openFolder(new File(lastPlayed));
@@ -504,13 +521,17 @@ public class MediaWindow extends Application {
 
 	}
 
+	/**
+	 * Opens a folder and attempt to play songs from it.
+	 * @param folder The folder to search.
+	 */
 	private void openFolder(File folder) {
 		if (folder == null || !folder.exists()) {
 			return;
 		} else {
 			lastPickedFolder = folder.getParentFile();
 		}
-		
+
 		musicPlayer = new MusicPlayer(folder, this);
 		if (musicPlayer.isValid()) {
 			musicPlayer.play();
@@ -521,7 +542,7 @@ public class MediaWindow extends Application {
 	}
 
 	/**
-	 * Handles resizing.
+	 * Handle resizing.
 	 */
 	private void redraw() {
 		graphics.setFill(Color.BLACK);
@@ -535,15 +556,21 @@ public class MediaWindow extends Application {
 		blur.setWidth(BassBall.radius * 0.5);
 	}
 
+	/**
+	 * Set various media player parameters.
+	 */
 	protected void initMediaPlayer(MediaPlayer mp) {
 		mp.setAudioSpectrumNumBands(bandCount);
 		mp.setAudioSpectrumInterval(1.0 / 12.0);
 		mp.setAudioSpectrumListener(visual);
 		mp.setStopTime(Duration.INDEFINITE);
 		mp.setOnEndOfMedia(playNext);
-		mp.setOnError(retrySong);
+		mp.setOnError(playNext);
 	}
-	
+
+	/**
+	 * Set the title of the current window.
+	 */
 	protected void setTitle(String title) {
 		stage.setTitle(title);
 	}
